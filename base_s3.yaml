@@ -1,0 +1,16 @@
+---
+Resources:
+  ASTempS3:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: astempbucketfordashboardfirst2
+      MetricsConfigurations:
+        - Id: EntireBucket
+
+
+Outputs:
+  ASTempS3utput:
+    Description: S3 output value.
+    Value: !Ref ASTempS3
+    Export:
+      Name: ASTempS3ID

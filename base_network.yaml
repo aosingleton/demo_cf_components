@@ -48,13 +48,13 @@ Resources:
 # exported for use in other formations
 Outputs:
   ASTempVPCOutput:
-    Description:  EC2 output value.
+    Description: VPC output value.
     Value: !Ref ASTempVPC
     Export:
       Name: ASTempVPC1ID
 
   ASTempSubnetOutput:
-    Description:  EC2 output value.
+    Description: Subnet output value.
     Value: !Ref ASTempSubnet
     Export:
       Name: ASTempSubnet1ID

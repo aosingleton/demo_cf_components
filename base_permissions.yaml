@@ -69,19 +69,19 @@ Resources:
 # exported for use in other formations
 Outputs:
   ASTempPolicyOutput:
-    Description:   Policy output value.
+    Description: Policy output value.
     Value: !Ref ASTempDashboardPolicy
     Export:
       Name: ASTempDashboardPolicyID
   
   ASTempSSGOutput:
-    Description:   Policy output value.
+    Description: SSG output value.
     Value: !Ref ASTempSSG
     Export:
       Name: ASTempSSGID
     
   ASTempRoleOutput:
-    Description:   Policy output value.
+    Description: Role output value.
     Value: !Ref ASTempRole
     Export:
       Name: ASTempRoleID
