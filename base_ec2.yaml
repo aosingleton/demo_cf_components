@@ -1,0 +1,123 @@
+# formation creates ec2 instance supporting metric collections
+---
+Parameters:
+  ASTempEC2KeyPair:
+    Description: Desired keypair for EC2 instance.
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: astempkeypair
+    
+  LatestAmiId:
+    Description: Desired amiID for latest amazon image.
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+
+
+Resources:
+  ASTempInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: ASTempProfile
+      Roles:
+        - !ImportValue ASTempRoleID
+
+  # creating ec2 instance(centOS) that reports out select metrics on memory
+  ASTempEC2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      InstanceType: t2.micro
+      KeyName: !Ref ASTempEC2KeyPair
+      Monitoring: True
+      IamInstanceProfile: !Ref ASTempInstanceProfile
+      NetworkInterfaces: 
+        - DeviceIndex: 0
+          SubnetId: !ImportValue ASTempSubnet1ID
+          GroupSet:
+            - !ImportValue ASTempSSGID
+      UserData: 
+        !Base64 |
+          #!/bin/bash
+          sudo su
+          yum update -y
+
+          # downloading cloudwatch agent client
+          wget https://s3.amazonaws.com/amazoncloudwatch-agent/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+
+          # install packages
+          sudo rpm -U ./amazon-cloudwatch-agent.rpm
+
+          # creating directory and file for configuration
+          mkdir -p /opt/aws/amazon-cloudwatch-agent/etc/
+          touch /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          echo '
+          {
+            "agent": {
+              "metrics_collection_interval": 300,
+              "logfile": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log"
+            },
+            "metrics": {
+              "append_dimensions": {
+              "ImageId": "${aws:ImageId}",
+              "InstanceId": "${aws:InstanceId}",
+              "InstanceType": "${aws:InstanceType}"
+              },
+              "metrics_collected": {
+                "disk": {
+                  "measurement": [
+                    "used_percent",
+                    {"name": "free", "rename": "free_disk_space", "unit": "Gigabytes"},
+                    "total",
+                    "used"
+                  ],
+                  "metrics_collection_interval": 300,
+                  "resources": [
+                    "*"
+                  ]
+                },
+                "mem": {
+                  "measurement": [
+                    "mem_used",
+                    "mem_active",
+                    "mem_available",
+                    "mem_available_percent",
+                    "mem_used_percent",
+                    "mem_free",
+                    "mem_total"
+                  ],
+                  "metrics_collection_interval": 60
+                }
+              }
+            },
+            "logs": {
+                "logs_collected": {
+                  "files": {
+                    "collect_list": [
+                      {
+                        "file_path": "/opt/aws/amazon-cloudwatch-agent/logs/amazon-cloudwatch-agent.log",
+                        "log_group_name": "amazon-cloudwatch-agent.log",
+                        "log_stream_name": "amazon-cloudwatch-agent.log",
+                        "timezone": "UTC"
+                      },
+                      {
+                        "file_path": "/opt/aws/amazon-cloudwatch-agent/logs/test.log",
+                        "log_group_name": "astemplog.log",
+                        "log_stream_name": "astempstream.log",
+                        "timezone": "Local"
+                      }
+                    ]
+                  }
+                },
+                "log_stream_name": "as_temp_logs",
+                "force_flush_interval" : 15
+              }
+          }' > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
+          sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s
+            
+            
+# exported for use in other formations
+Outputs:
+  ProjectDashboardEC2:
+    Description:  EC2 output value.
+    Value: !Ref ASTempEC2
+    Export:
+      Name: ASTempEC21ID

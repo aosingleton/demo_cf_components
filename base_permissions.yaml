@@ -1,0 +1,87 @@
+# formation creates base permissions/roles (role, ip, policy)
+# resources are exported for use in other formations
+---
+Resources:
+  ASTempRole: 
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - 
+            Effect: Allow
+            Action: 'sts:AssumeRole'
+            Principal: 
+              Service: 
+                - 'ec2.amazonaws.com'
+
+  # included policies support the creation and monitoring of metrics
+  ASTempDashboardPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ASTempPolicy
+      PolicyDocument:
+        Statement:
+          - 
+            Effect: Allow
+            Action: 
+              - 's3:*'
+              - 'ec2:*'
+              - 'cloudwatch:*'
+              - 'logs:*'
+              - 'sns:*'
+              - 'iam:GetPolicy'
+              - 'iam:GetPolicyVersion'
+              - 'iam:GetRole'
+            Resource: '*'
+      Roles:
+        - !Ref ASTempRole
+
+  # creating group with open traffic rules
+  ASTempSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable HTTP, SSH
+      VpcId: !ImportValue ASTempVPC1ID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+
+# exported for use in other formations
+Outputs:
+  ASTempPolicyOutput:
+    Description:   Policy output value.
+    Value: !Ref ASTempDashboardPolicy
+    Export:
+      Name: ASTempDashboardPolicyID
+  
+  ASTempSSGOutput:
+    Description:   Policy output value.
+    Value: !Ref ASTempSSG
+    Export:
+      Name: ASTempSSGID
+    
+  ASTempRoleOutput:
+    Description:   Policy output value.
+    Value: !Ref ASTempRole
+    Export:
+      Name: ASTempRoleID
