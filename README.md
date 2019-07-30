@@ -29,3 +29,4 @@
 2. Consideration should be given to the type of metrics needed as well as duration for measurement when the resource is created.  
 3. Some resources can have detailed metrics/ logging turned on at creation (ec2, s3, etc.)
 4. Some resources take time for initial metrics to propagate in cloudwatch (s3 & ec2).
+5. EC2 user data includes script to start cloudwatch agent interactions.  This version uses a scripted configuration, however, if a used can SSH into a server than can run the cloudwatch agent wizard and customize configuration.
